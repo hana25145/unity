@@ -36,6 +36,7 @@
 
 # Visual Studio cache directory
 .vs/
+.vscode/
 
 # Gradle cache directory
 .gradle/
@@ -104,3 +105,7 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Unity Version Control / Plastic SCM local workspace files
+.plastic/
+ignore.conf
