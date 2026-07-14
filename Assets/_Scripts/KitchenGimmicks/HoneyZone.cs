@@ -11,6 +11,8 @@ public class HoneyZone : MonoBehaviour
     [Header("Optional texture mask")]
     [SerializeField] private Renderer maskRenderer;
     [Range(0f, 1f)] [SerializeField] private float alphaThreshold = 0.15f;
+    [SerializeField] private int maskUAxis;
+    [SerializeField] private int maskVAxis = 1;
 
     private readonly HashSet<PlayerBall> affectedPlayers = new();
     private Texture2D maskTexture;
@@ -23,10 +25,12 @@ public class HoneyZone : MonoBehaviour
         honeyLinearDamping = Mathf.Max(0f, linearDamping);
     }
 
-    public void ConfigureMask(Renderer renderer, float threshold = 0.15f)
+    public void ConfigureMask(Renderer renderer, float threshold = 0.15f, int uAxis = 0, int vAxis = 1)
     {
         maskRenderer = renderer;
         alphaThreshold = Mathf.Clamp01(threshold);
+        maskUAxis = Mathf.Clamp(uAxis, 0, 2);
+        maskVAxis = Mathf.Clamp(vAxis, 0, 2);
     }
 
     private void Awake()
@@ -100,11 +104,8 @@ public class HoneyZone : MonoBehaviour
 
         Bounds bounds = maskMeshFilter.sharedMesh.bounds;
         Vector3 local = maskRenderer.transform.InverseTransformPoint(worldPosition);
-        Vector3 size = bounds.size;
-        int firstAxis = LargestAxis(size, -1);
-        int secondAxis = LargestAxis(size, firstAxis);
-        float u = Mathf.InverseLerp(Axis(bounds.min, firstAxis), Axis(bounds.max, firstAxis), Axis(local, firstAxis));
-        float v = Mathf.InverseLerp(Axis(bounds.min, secondAxis), Axis(bounds.max, secondAxis), Axis(local, secondAxis));
+        float u = Mathf.InverseLerp(Axis(bounds.min, maskUAxis), Axis(bounds.max, maskUAxis), Axis(local, maskUAxis));
+        float v = Mathf.InverseLerp(Axis(bounds.min, maskVAxis), Axis(bounds.max, maskVAxis), Axis(local, maskVAxis));
         return maskTexture.GetPixelBilinear(Mathf.Clamp01(u), Mathf.Clamp01(v)).a >= alphaThreshold;
     }
 
@@ -118,17 +119,6 @@ public class HoneyZone : MonoBehaviour
     {
         player.RemoveSurfaceEffect(this);
         affectedPlayers.Remove(player);
-    }
-
-    private static int LargestAxis(Vector3 size, int excluded)
-    {
-        int result = excluded == 0 ? 1 : 0;
-        for (int axis = 0; axis < 3; axis++)
-        {
-            if (axis != excluded && Axis(size, axis) > Axis(size, result))
-                result = axis;
-        }
-        return result;
     }
 
     private static float Axis(Vector3 value, int axis)

@@ -26,7 +26,7 @@ public static class SampleSceneGameBuilder
         foreach (KitchenGameManager manager in Object.FindObjectsByType<KitchenGameManager>(FindObjectsSortMode.None))
             Object.DestroyImmediate(manager.gameObject);
 
-        NormalizeZones<SoapZone>();
+        ConfigureSoapTextureMask();
         NormalizeZones<FanZone>();
         NormalizeZones<WaterZone>();
         ConfigureSampleFan();
@@ -81,6 +81,15 @@ public static class SampleSceneGameBuilder
             : null;
         if (maskTexture == null || !maskTexture.isReadable)
             throw new System.InvalidOperationException("Honey texture mask is missing or not readable.");
+        SoapZone soap = Object.FindFirstObjectByType<SoapZone>();
+        SerializedObject soapSettings = new(soap);
+        Renderer soapMask = soapSettings.FindProperty("maskRenderer").objectReferenceValue as Renderer;
+        Texture2D soapTexture = soapMask != null && soapMask.sharedMaterial != null
+            ? soapMask.sharedMaterial.mainTexture as Texture2D
+            : null;
+        float soapDamping = soapSettings.FindProperty("slipperyDamping").floatValue;
+        if (soapTexture == null || !soapTexture.isReadable || soapDamping >= .25f)
+            throw new System.InvalidOperationException("Soap texture mask or slippery damping is invalid.");
         FanZone fan = Object.FindFirstObjectByType<FanZone>();
         SerializedObject fanSettings = new(fan);
         Vector3 windDirection = fanSettings.FindProperty("worldWindDirection").vector3Value;
@@ -195,6 +204,41 @@ public static class SampleSceneGameBuilder
         if (fans.Length != 1)
             throw new System.InvalidOperationException($"Expected one SampleScene fan zone, found {fans.Length}.");
         fans[0].Configure(Vector3.left, 18f);
+    }
+
+    private static void ConfigureSoapTextureMask()
+    {
+        SoapZone[] zones = Object.FindObjectsByType<SoapZone>(FindObjectsSortMode.None);
+        if (zones.Length != 1)
+            throw new System.InvalidOperationException($"Expected one SampleScene soap zone, found {zones.Length}.");
+
+        GameObject soap = zones[0].gameObject;
+        Collider oldCollider = zones[0].GetComponent<Collider>();
+        Object.DestroyImmediate(zones[0]);
+        if (oldCollider != null)
+            Object.DestroyImmediate(oldCollider);
+
+        MeshRenderer renderer = soap.GetComponent<MeshRenderer>();
+        MeshFilter filter = soap.GetComponent<MeshFilter>();
+        if (renderer == null || filter == null || filter.sharedMesh == null)
+            throw new System.InvalidOperationException("Soap_zone needs a MeshRenderer and MeshFilter.");
+
+        Texture texture = renderer.sharedMaterial != null ? renderer.sharedMaterial.mainTexture : null;
+        TextureImporter importer = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture)) as TextureImporter;
+        if (importer != null && !importer.isReadable)
+        {
+            importer.isReadable = true;
+            importer.SaveAndReimport();
+        }
+
+        Bounds bounds = filter.sharedMesh.bounds;
+        BoxCollider trigger = soap.AddComponent<BoxCollider>();
+        trigger.center = bounds.center;
+        trigger.size = bounds.size;
+        trigger.isTrigger = true;
+        SoapZone zone = soap.AddComponent<SoapZone>();
+        zone.Configure(.6f, 1f, .05f);
+        zone.ConfigureMask(renderer, .15f, 0, 2);
     }
 
     private static void CreateForkJumpTrigger(Transform parent)
