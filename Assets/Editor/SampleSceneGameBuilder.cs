@@ -31,7 +31,7 @@ public static class SampleSceneGameBuilder
         NormalizeZones<WaterZone>();
 
         GameObject additions = new("GAMEPLAY_ADDITIONS");
-        CreateHoneyPuddleTriggers(additions.transform);
+        ConfigureHoneyTextureMask();
         GameObject managerObject = new("KitchenGameManager", typeof(KitchenGameManager));
         managerObject.transform.SetParent(additions.transform);
         managerObject.GetComponent<KitchenGameManager>().Configure(player);
@@ -68,6 +68,16 @@ public static class SampleSceneGameBuilder
         ValidateTriggers<HoneyZone>();
         ValidateTriggers<SoapZone>();
         ValidateTriggers<FanZone>();
+        HoneyZone[] honeyZones = Object.FindObjectsByType<HoneyZone>(FindObjectsSortMode.None);
+        if (honeyZones.Length != 1)
+            throw new System.InvalidOperationException($"Expected one texture-masked honey zone, found {honeyZones.Length}.");
+        SerializedObject honeySettings = new(honeyZones[0]);
+        Renderer mask = honeySettings.FindProperty("maskRenderer").objectReferenceValue as Renderer;
+        Texture2D maskTexture = mask != null && mask.sharedMaterial != null
+            ? mask.sharedMaterial.mainTexture as Texture2D
+            : null;
+        if (maskTexture == null || !maskTexture.isReadable)
+            throw new System.InvalidOperationException("Honey texture mask is missing or not readable.");
         Debug.Log("SampleScene gameplay validation passed.");
     }
 
@@ -153,7 +163,7 @@ public static class SampleSceneGameBuilder
         }
     }
 
-    private static void CreateHoneyPuddleTriggers(Transform parent)
+    private static void ConfigureHoneyTextureMask()
     {
         foreach (HoneyZone oldZone in Object.FindObjectsByType<HoneyZone>(FindObjectsSortMode.None))
         {
@@ -163,33 +173,36 @@ public static class SampleSceneGameBuilder
                 Object.DestroyImmediate(oldCollider);
         }
 
-        GameObject root = new("HoneyPuddleTriggers");
-        root.transform.SetParent(parent, false);
-        Vector3[] positions =
-        {
-            new(-3.2f, -1.35f, 11.2f),
-            new(16.5f, -1.35f, 10.7f),
-            new(34.8f, -1.35f, 13.0f)
-        };
-        Vector3[] sizes =
-        {
-            new(15f, .8f, 7.5f),
-            new(15f, .8f, 6.5f),
-            new(14f, .8f, 7.5f)
-        };
-        float[] rotations = { -8f, 5f, -7f };
+        GameObject honey = GameObject.Find("honey");
+        if (honey == null)
+            throw new System.InvalidOperationException("Could not find the honey_spill_wide scene object.");
 
-        for (int i = 0; i < positions.Length; i++)
+        MeshRenderer renderer = honey.GetComponent<MeshRenderer>();
+        MeshFilter filter = honey.GetComponent<MeshFilter>();
+        if (renderer == null || filter == null || filter.sharedMesh == null)
+            throw new System.InvalidOperationException("The honey object needs a MeshRenderer and MeshFilter.");
+
+        Texture texture = renderer.sharedMaterial != null ? renderer.sharedMaterial.mainTexture : null;
+        string texturePath = AssetDatabase.GetAssetPath(texture);
+        TextureImporter importer = AssetImporter.GetAtPath(texturePath) as TextureImporter;
+        if (importer != null && !importer.isReadable)
         {
-            GameObject puddle = new($"HoneyPuddle_{i + 1}", typeof(BoxCollider), typeof(HoneyZone));
-            puddle.transform.SetParent(root.transform, false);
-            puddle.transform.position = positions[i];
-            puddle.transform.rotation = Quaternion.Euler(0f, rotations[i], 0f);
-            BoxCollider collider = puddle.GetComponent<BoxCollider>();
-            collider.isTrigger = true;
-            collider.size = sizes[i];
-            puddle.GetComponent<HoneyZone>().Configure(.65f, .7f, 1.25f);
+            importer.isReadable = true;
+            importer.SaveAndReimport();
         }
+
+        Bounds bounds = filter.sharedMesh.bounds;
+        Vector3 size = bounds.size;
+        size.x = Mathf.Max(size.x, .2f);
+        size.y = Mathf.Max(size.y, .2f);
+        size.z = Mathf.Max(size.z, .2f);
+        BoxCollider trigger = honey.AddComponent<BoxCollider>();
+        trigger.center = bounds.center;
+        trigger.size = size;
+        trigger.isTrigger = true;
+        HoneyZone zone = honey.AddComponent<HoneyZone>();
+        zone.Configure(.65f, .7f, 1.25f);
+        zone.ConfigureMask(renderer, .15f);
     }
 
     private static void NormalizeZones<T>() where T : Component
