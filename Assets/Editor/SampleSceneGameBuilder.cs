@@ -32,6 +32,7 @@ public static class SampleSceneGameBuilder
 
         GameObject additions = new("GAMEPLAY_ADDITIONS");
         ConfigureHoneyTextureMask();
+        CreateForkJumpTrigger(additions.transform);
         GameObject managerObject = new("KitchenGameManager", typeof(KitchenGameManager));
         managerObject.transform.SetParent(additions.transform);
         managerObject.GetComponent<KitchenGameManager>().Configure(player);
@@ -68,6 +69,7 @@ public static class SampleSceneGameBuilder
         ValidateTriggers<HoneyZone>();
         ValidateTriggers<SoapZone>();
         ValidateTriggers<FanZone>();
+        ValidateTriggers<ForkJumpPad>();
         HoneyZone[] honeyZones = Object.FindObjectsByType<HoneyZone>(FindObjectsSortMode.None);
         if (honeyZones.Length != 1)
             throw new System.InvalidOperationException($"Expected one texture-masked honey zone, found {honeyZones.Length}.");
@@ -126,6 +128,14 @@ public static class SampleSceneGameBuilder
             report.AppendLine($"FAN {zone.name}: position={zone.transform.position}");
         foreach (WaterZone zone in Object.FindObjectsByType<WaterZone>(FindObjectsSortMode.None))
             report.AppendLine($"WATER {zone.name}: position={zone.transform.position}");
+        GameObject fork = GameObject.Find("fork");
+        if (fork != null)
+        {
+            Renderer forkRenderer = fork.GetComponentInChildren<Renderer>();
+            report.AppendLine(forkRenderer != null
+                ? $"FORK {fork.name}: position={fork.transform.position}, bounds={forkRenderer.bounds}"
+                : $"FORK {fork.name}: position={fork.transform.position}");
+        }
 
         Debug.Log(report.ToString());
     }
@@ -161,6 +171,24 @@ public static class SampleSceneGameBuilder
             Material material = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/{materials[i]}.mat");
             CreateModel(modelFiles[i], collectible.transform, material, Vector3.one * .85f);
         }
+    }
+
+    private static void CreateForkJumpTrigger(Transform parent)
+    {
+        GameObject fork = GameObject.Find("fork");
+        Renderer renderer = fork != null ? fork.GetComponentInChildren<Renderer>() : null;
+        if (fork == null || renderer == null)
+            throw new System.InvalidOperationException("Could not find the SampleScene fork model.");
+
+        Bounds bounds = renderer.bounds;
+        GameObject trigger = new("ForkJumpTrigger", typeof(BoxCollider), typeof(ForkJumpPad));
+        trigger.transform.SetParent(parent, false);
+        trigger.transform.position = bounds.center + Vector3.up * .45f;
+        trigger.transform.rotation = Quaternion.identity;
+        BoxCollider collider = trigger.GetComponent<BoxCollider>();
+        collider.isTrigger = true;
+        collider.size = new Vector3(bounds.size.x + .8f, 2f, bounds.size.z * .92f);
+        trigger.GetComponent<ForkJumpPad>().Configure(8.5f, 8f, .45f);
     }
 
     private static void ConfigureHoneyTextureMask()
