@@ -26,12 +26,12 @@ public static class SampleSceneGameBuilder
         foreach (KitchenGameManager manager in Object.FindObjectsByType<KitchenGameManager>(FindObjectsSortMode.None))
             Object.DestroyImmediate(manager.gameObject);
 
-        NormalizeZones<HoneyZone>();
         NormalizeZones<SoapZone>();
         NormalizeZones<FanZone>();
         NormalizeZones<WaterZone>();
 
         GameObject additions = new("GAMEPLAY_ADDITIONS");
+        CreateHoneyPuddleTriggers(additions.transform);
         GameObject managerObject = new("KitchenGameManager", typeof(KitchenGameManager));
         managerObject.transform.SetParent(additions.transform);
         managerObject.GetComponent<KitchenGameManager>().Configure(player);
@@ -103,7 +103,13 @@ public static class SampleSceneGameBuilder
         foreach (PlayerBall player in Object.FindObjectsByType<PlayerBall>(FindObjectsSortMode.None))
             report.AppendLine($"PLAYER {player.name}: position={player.transform.position}");
         foreach (HoneyZone zone in Object.FindObjectsByType<HoneyZone>(FindObjectsSortMode.None))
-            report.AppendLine($"HONEY {zone.name}: position={zone.transform.position}");
+        {
+            Collider collider = zone.GetComponent<Collider>();
+            Renderer renderer = zone.GetComponent<Renderer>();
+            report.AppendLine($"HONEY {zone.name}: position={zone.transform.position}, " +
+                $"trigger={(collider != null ? collider.bounds.ToString() : "none")}, " +
+                $"visual={(renderer != null ? renderer.bounds.ToString() : "none")}");
+        }
         foreach (SoapZone zone in Object.FindObjectsByType<SoapZone>(FindObjectsSortMode.None))
             report.AppendLine($"SOAP {zone.name}: position={zone.transform.position}");
         foreach (FanZone zone in Object.FindObjectsByType<FanZone>(FindObjectsSortMode.None))
@@ -144,6 +150,44 @@ public static class SampleSceneGameBuilder
 
             Material material = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/{materials[i]}.mat");
             CreateModel(modelFiles[i], collectible.transform, material, Vector3.one * .85f);
+        }
+    }
+
+    private static void CreateHoneyPuddleTriggers(Transform parent)
+    {
+        foreach (HoneyZone oldZone in Object.FindObjectsByType<HoneyZone>(FindObjectsSortMode.None))
+        {
+            Collider oldCollider = oldZone.GetComponent<Collider>();
+            Object.DestroyImmediate(oldZone);
+            if (oldCollider != null)
+                Object.DestroyImmediate(oldCollider);
+        }
+
+        GameObject root = new("HoneyPuddleTriggers");
+        root.transform.SetParent(parent, false);
+        Vector3[] positions =
+        {
+            new(-3.2f, -1.35f, 11.2f),
+            new(16.5f, -1.35f, 10.7f),
+            new(34.8f, -1.35f, 13.0f)
+        };
+        Vector3[] sizes =
+        {
+            new(15f, .8f, 7.5f),
+            new(15f, .8f, 6.5f),
+            new(14f, .8f, 7.5f)
+        };
+        float[] rotations = { -8f, 5f, -7f };
+
+        for (int i = 0; i < positions.Length; i++)
+        {
+            GameObject puddle = new($"HoneyPuddle_{i + 1}", typeof(BoxCollider), typeof(HoneyZone));
+            puddle.transform.SetParent(root.transform, false);
+            puddle.transform.position = positions[i];
+            puddle.transform.rotation = Quaternion.Euler(0f, rotations[i], 0f);
+            BoxCollider collider = puddle.GetComponent<BoxCollider>();
+            collider.isTrigger = true;
+            collider.size = sizes[i];
         }
     }
 
