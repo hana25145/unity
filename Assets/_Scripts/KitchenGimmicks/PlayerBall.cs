@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
@@ -17,8 +18,10 @@ public class PlayerBall : MonoBehaviour
     private Rigidbody rb;
     private Vector3 checkpointPosition;
     private Quaternion checkpointRotation;
+    private bool controlEnabled = true;
 
     public Rigidbody Body => rb;
+    public event Action Respawned;
 
     private struct SurfaceEffect
     {
@@ -57,11 +60,11 @@ public class PlayerBall : MonoBehaviour
             }
         }
 
-        Vector3 input = new(
+        Vector3 input = controlEnabled ? new Vector3(
             Input.GetAxisRaw("Horizontal"),
             0f,
             Input.GetAxisRaw("Vertical")
-        );
+        ) : Vector3.zero;
 
         if (input.sqrMagnitude > 1f)
             input.Normalize();
@@ -122,6 +125,16 @@ public class PlayerBall : MonoBehaviour
         checkpointRotation = rotation;
     }
 
+    public void SetControlEnabled(bool enabled)
+    {
+        controlEnabled = enabled;
+        if (!enabled && rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+    }
+
     public void Respawn()
     {
         surfaceEffects.Clear();
@@ -129,5 +142,6 @@ public class PlayerBall : MonoBehaviour
         rb.rotation = checkpointRotation;
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
+        Respawned?.Invoke();
     }
 }

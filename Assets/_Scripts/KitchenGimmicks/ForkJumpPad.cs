@@ -10,6 +10,11 @@ public class ForkJumpPad : MonoBehaviour
 
     private readonly Dictionary<PlayerBall, float> lastLaunchTimes = new();
 
+    private void Awake()
+    {
+        GetComponent<Collider>().isTrigger = true;
+    }
+
     private void Reset()
     {
         GetComponent<Collider>().isTrigger = true;

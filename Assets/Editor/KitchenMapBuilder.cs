@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System.IO;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -31,6 +32,7 @@ public static class KitchenMapBuilder
         Material fan = Material("FanPurple", new Color(0.55f, 0.17f, 0.72f), 0.3f);
         Material green = Material("GoalGreen", new Color(0.14f, 0.72f, 0.26f), 0.25f);
         Material playerMaterial = Material("Player", new Color(1f, 0.88f, 0.12f), 0.55f);
+        Material ingredient = Material("Ingredient", new Color(1f, 0.2f, 0.35f), 0.7f);
 
         GameObject environment = new("ENVIRONMENT");
         GameObject gameplay = new("GAMEPLAY");
@@ -42,6 +44,14 @@ public static class KitchenMapBuilder
         BuildSinkSection(gameplay.transform, decoration.transform, metal, porcelain, soap, darkMetal);
         BuildFanSection(gameplay.transform, decoration.transform, fan, metal);
         BuildGoal(gameplay.transform, green, darkMetal, porcelain);
+        BuildCollectibles(gameplay.transform, ingredient);
+
+        GameObject deathPlane = new("FallHazard", typeof(BoxCollider), typeof(WaterZone));
+        deathPlane.transform.SetParent(gameplay.transform);
+        deathPlane.transform.position = new Vector3(5f, -3f, 0f);
+        BoxCollider deathCollider = deathPlane.GetComponent<BoxCollider>();
+        deathCollider.isTrigger = true;
+        deathCollider.size = new Vector3(75f, 1f, 30f);
 
         GameObject player = Primitive("PlayerBall", PrimitiveType.Sphere,
             new Vector3(-23f, 1.35f, 0f), Vector3.one * 1.3f, playerMaterial, gameplay.transform);
@@ -49,7 +59,10 @@ public static class KitchenMapBuilder
         body.mass = 1.2f;
         body.interpolation = RigidbodyInterpolation.Interpolate;
         body.collisionDetectionMode = CollisionDetectionMode.Continuous;
-        player.AddComponent<PlayerBall>();
+        PlayerBall playerBall = player.AddComponent<PlayerBall>();
+
+        GameObject manager = new("KitchenGameManager", typeof(KitchenGameManager));
+        manager.GetComponent<KitchenGameManager>().Configure(playerBall);
 
         CreateCheckpoint("StartCheckpoint", new Vector3(-23f, 1f, 0f), new Vector3(3f, 2f, 5f), gameplay.transform);
         CreateCheckpoint("SinkCheckpoint", new Vector3(2f, 1f, 0f), new Vector3(3f, 2f, 8f), gameplay.transform);
@@ -80,6 +93,54 @@ public static class KitchenMapBuilder
         Selection.activeGameObject = player;
         EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath));
         Debug.Log($"Kitchen course created: {ScenePath}");
+    }
+
+    [MenuItem("Tools/Kitchen Gimmicks/Validate Kitchen Course")]
+    public static void ValidateCourse()
+    {
+        if (!File.Exists(ScenePath))
+            throw new FileNotFoundException("Build the kitchen course before validating it.", ScenePath);
+
+        EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        RequireSingle<PlayerBall>("player ball");
+        RequireSingle<KitchenGameManager>("game manager");
+        RequireSingle<KitchenGoal>("goal");
+
+        IngredientCollectible[] ingredients = Object.FindObjectsByType<IngredientCollectible>(FindObjectsSortMode.None);
+        if (ingredients.Length != 8)
+            throw new System.InvalidOperationException($"Expected 8 ingredients, found {ingredients.Length}.");
+
+        ValidateTriggers<HoneyZone>();
+        ValidateTriggers<SoapZone>();
+        ValidateTriggers<FanZone>();
+        ValidateTriggers<ForkJumpPad>();
+        ValidateTriggers<Checkpoint>();
+        ValidateTriggers<WaterZone>();
+        ValidateTriggers<KitchenGoal>();
+        ValidateTriggers<IngredientCollectible>();
+
+        Debug.Log("Kitchen course validation passed: player, game loop, goal, 8 ingredients, and all trigger zones are valid.");
+    }
+
+    private static void RequireSingle<T>(string label) where T : Object
+    {
+        T[] objects = Object.FindObjectsByType<T>(FindObjectsSortMode.None);
+        if (objects.Length != 1)
+            throw new System.InvalidOperationException($"Expected one {label}, found {objects.Length}.");
+    }
+
+    private static void ValidateTriggers<T>() where T : Component
+    {
+        T[] components = Object.FindObjectsByType<T>(FindObjectsSortMode.None);
+        if (components.Length == 0)
+            throw new System.InvalidOperationException($"No {typeof(T).Name} components found.");
+
+        foreach (T component in components)
+        {
+            Collider collider = component.GetComponent<Collider>();
+            if (collider == null || !collider.isTrigger)
+                throw new System.InvalidOperationException($"{component.name} has an invalid {typeof(T).Name} trigger.");
+        }
     }
 
     private static void BuildCounter(Transform parent, Material top, Material edge)
@@ -178,10 +239,12 @@ public static class KitchenMapBuilder
 
         Primitive("Stand", PrimitiveType.Cylinder, new Vector3(0f, -2.2f, 0f), new Vector3(2.3f, 0.35f, 2.3f), fan, fanRoot.transform);
         Primitive("Neck", PrimitiveType.Cylinder, new Vector3(0f, -1.2f, 0f), new Vector3(0.35f, 1.7f, 0.35f), metal, fanRoot.transform);
-        Primitive("Hub", PrimitiveType.Sphere, Vector3.zero, Vector3.one * 1.25f, fan, fanRoot.transform);
+        GameObject rotor = new("Rotor", typeof(KitchenSpinner));
+        rotor.transform.SetParent(fanRoot.transform, false);
+        Primitive("Hub", PrimitiveType.Sphere, Vector3.zero, Vector3.one * 1.25f, fan, rotor.transform);
         for (int i = 0; i < 4; i++)
             Primitive("Blade", PrimitiveType.Cube, Vector3.zero, new Vector3(0.45f, 3.9f, 1f),
-                fan, fanRoot.transform, new Vector3(i * 90f, 0f, 0f));
+                fan, rotor.transform, new Vector3(i * 90f, 0f, 0f));
 
         GameObject wind = new("FanWindZone");
         wind.transform.SetParent(gameplay);
@@ -212,6 +275,30 @@ public static class KitchenMapBuilder
         for (int i = 0; i < 8; i++)
             Primitive("GoalBanner", PrimitiveType.Cube, new Vector3(0f, 4f, -4.4f + i * 1.25f),
                 new Vector3(0.35f, 0.8f, 1.25f), i % 2 == 0 ? dark : light, goal.transform);
+    }
+
+    private static void BuildCollectibles(Transform parent, Material material)
+    {
+        Vector3[] positions =
+        {
+            new(-20f, 1.2f, 1.2f),
+            new(-16f, 1.2f, -0.2f),
+            new(-11f, 1.2f, 1.4f),
+            new(-4.5f, 1.5f, 0f),
+            new(2f, 1.8f, -3f),
+            new(8f, 2.1f, 0f),
+            new(18f, 1.5f, -2.5f),
+            new(27f, 1.5f, 2.5f)
+        };
+
+        for (int i = 0; i < positions.Length; i++)
+        {
+            GameObject item = Primitive($"Ingredient_{i + 1}", PrimitiveType.Capsule,
+                positions[i], new Vector3(.65f, .65f, .65f), material, parent,
+                new Vector3(0f, 0f, 90f));
+            item.GetComponent<Collider>().isTrigger = true;
+            item.AddComponent<IngredientCollectible>();
+        }
     }
 
     private static void CreateCheckpoint(string name, Vector3 position, Vector3 size, Transform parent)
@@ -269,15 +356,16 @@ public static class KitchenMapBuilder
 
     private static void AddSceneToBuildSettings(string path)
     {
-        EditorBuildSettingsScene[] scenes = EditorBuildSettings.scenes;
-        foreach (EditorBuildSettingsScene scene in scenes)
+        List<EditorBuildSettingsScene> scenes = new()
         {
-            if (scene.path == path)
-                return;
+            new EditorBuildSettingsScene(path, true)
+        };
+        foreach (EditorBuildSettingsScene scene in EditorBuildSettings.scenes)
+        {
+            if (scene.path != path)
+                scenes.Add(scene);
         }
-
-        ArrayUtility.Add(ref scenes, new EditorBuildSettingsScene(path, true));
-        EditorBuildSettings.scenes = scenes;
+        EditorBuildSettings.scenes = scenes.ToArray();
     }
 }
 #endif

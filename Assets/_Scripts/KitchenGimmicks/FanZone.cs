@@ -6,6 +6,11 @@ public class FanZone : MonoBehaviour
     [Tooltip("파란색 로컬 Z축 방향으로 바람이 붑니다.")]
     [SerializeField] private float windAcceleration = 16f;
 
+    private void Awake()
+    {
+        GetComponent<Collider>().isTrigger = true;
+    }
+
     private void Reset()
     {
         GetComponent<Collider>().isTrigger = true;
