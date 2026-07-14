@@ -1,0 +1,30 @@
+newmtl bag_green
+Kd 0.300 0.620 0.320
+Ka 0.090 0.186 0.096
+d 1.0
+
+newmtl bag_cream
+Kd 0.950 0.910 0.780
+Ka 0.285 0.273 0.234
+d 1.0
+
+newmtl fan_white
+Kd 0.950 0.960 0.970
+Ka 0.285 0.288 0.291
+d 1.0
+
+newmtl fan_grey
+Kd 0.740 0.780 0.820
+Ka 0.222 0.234 0.246
+d 1.0
+
+newmtl silver
+Kd 0.800 0.820 0.860
+Ka 0.240 0.246 0.258
+d 1.0
+
+newmtl hub_grey
+Kd 0.550 0.580 0.630
+Ka 0.165 0.174 0.189
+d 1.0
+

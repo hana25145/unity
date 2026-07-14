@@ -1,0 +1,30 @@
+newmtl soap
+Kd 0.940 0.550 0.580
+Ka 0.282 0.165 0.174
+d 1
+
+newmtl soap_light
+Kd 0.970 0.720 0.740
+Ka 0.291 0.216 0.222
+d 1
+
+newmtl tomato
+Kd 0.890 0.210 0.180
+Ka 0.267 0.063 0.054
+d 1
+
+newmtl tomato_dark
+Kd 0.740 0.160 0.140
+Ka 0.222 0.048 0.042
+d 1
+
+newmtl leaf
+Kd 0.420 0.660 0.280
+Ka 0.126 0.198 0.084
+d 1
+
+newmtl stem
+Kd 0.550 0.720 0.340
+Ka 0.165 0.216 0.102
+d 1
+

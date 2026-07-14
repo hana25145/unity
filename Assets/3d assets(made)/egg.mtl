@@ -1,0 +1,60 @@
+newmtl tomato
+Kd 0.890 0.210 0.180
+Ka 0.267 0.063 0.054
+d 1
+
+newmtl leaf
+Kd 0.420 0.660 0.280
+Ka 0.126 0.198 0.084
+d 1
+
+newmtl stem
+Kd 0.550 0.720 0.340
+Ka 0.165 0.216 0.102
+d 1
+
+newmtl banana
+Kd 0.960 0.830 0.280
+Ka 0.288 0.249 0.084
+d 1
+
+newmtl banana_tip
+Kd 0.450 0.380 0.220
+Ka 0.135 0.114 0.066
+d 1
+
+newmtl egg
+Kd 0.970 0.950 0.900
+Ka 0.291 0.285 0.270
+d 1
+
+newmtl peach
+Kd 0.980 0.700 0.600
+Ka 0.294 0.210 0.180
+d 1
+
+newmtl peach_blush
+Kd 0.950 0.500 0.460
+Ka 0.285 0.150 0.138
+d 1
+
+newmtl plum
+Kd 0.460 0.220 0.420
+Ka 0.138 0.066 0.126
+d 1
+
+newmtl plum_dark
+Kd 0.360 0.160 0.340
+Ka 0.108 0.048 0.102
+d 1
+
+newmtl onion_white
+Kd 0.950 0.950 0.900
+Ka 0.285 0.285 0.270
+d 1
+
+newmtl onion_green
+Kd 0.420 0.660 0.340
+Ka 0.126 0.198 0.102
+d 1
+
