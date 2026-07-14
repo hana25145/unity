@@ -361,7 +361,7 @@ public static class SampleSceneGameBuilder
         Material light = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/Porcelain.mat");
         GameObject goal = new("GOAL", typeof(BoxCollider), typeof(KitchenGoal));
         goal.transform.SetParent(parent, false);
-        goal.transform.position = new Vector3(7.5f, 1f, 115f);
+        goal.transform.position = new Vector3(7.5f, 1f, 108f);
         BoxCollider trigger = goal.GetComponent<BoxCollider>();
         trigger.isTrigger = true;
         trigger.size = new Vector3(22f, 5f, 2.5f);
