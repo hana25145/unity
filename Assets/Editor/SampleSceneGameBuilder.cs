@@ -29,6 +29,7 @@ public static class SampleSceneGameBuilder
         NormalizeZones<SoapZone>();
         NormalizeZones<FanZone>();
         NormalizeZones<WaterZone>();
+        ConfigureSampleFan();
 
         GameObject additions = new("GAMEPLAY_ADDITIONS");
         ConfigureHoneyTextureMask();
@@ -80,6 +81,12 @@ public static class SampleSceneGameBuilder
             : null;
         if (maskTexture == null || !maskTexture.isReadable)
             throw new System.InvalidOperationException("Honey texture mask is missing or not readable.");
+        FanZone fan = Object.FindFirstObjectByType<FanZone>();
+        SerializedObject fanSettings = new(fan);
+        Vector3 windDirection = fanSettings.FindProperty("worldWindDirection").vector3Value;
+        float windAcceleration = fanSettings.FindProperty("windAcceleration").floatValue;
+        if (Vector3.Dot(windDirection.normalized, Vector3.left) < .99f || windAcceleration > 20f)
+            throw new System.InvalidOperationException("SampleScene fan must use a moderate leftward crosswind.");
         Debug.Log("SampleScene gameplay validation passed.");
     }
 
@@ -125,7 +132,11 @@ public static class SampleSceneGameBuilder
         foreach (SoapZone zone in Object.FindObjectsByType<SoapZone>(FindObjectsSortMode.None))
             report.AppendLine($"SOAP {zone.name}: position={zone.transform.position}");
         foreach (FanZone zone in Object.FindObjectsByType<FanZone>(FindObjectsSortMode.None))
-            report.AppendLine($"FAN {zone.name}: position={zone.transform.position}");
+        {
+            Collider collider = zone.GetComponent<Collider>();
+            report.AppendLine($"FAN {zone.name}: position={zone.transform.position}, direction={zone.transform.forward}, " +
+                $"bounds={(collider != null ? collider.bounds.ToString() : "none")}");
+        }
         foreach (WaterZone zone in Object.FindObjectsByType<WaterZone>(FindObjectsSortMode.None))
             report.AppendLine($"WATER {zone.name}: position={zone.transform.position}");
         GameObject fork = GameObject.Find("fork");
@@ -135,6 +146,11 @@ public static class SampleSceneGameBuilder
             report.AppendLine(forkRenderer != null
                 ? $"FORK {fork.name}: position={fork.transform.position}, bounds={forkRenderer.bounds}"
                 : $"FORK {fork.name}: position={fork.transform.position}");
+        }
+        foreach (BoxCollider collider in Object.FindObjectsByType<BoxCollider>(FindObjectsSortMode.None))
+        {
+            if (!collider.isTrigger && collider.bounds.max.z > 110f)
+                report.AppendLine($"END COLLIDER {collider.name}: bounds={collider.bounds}");
         }
 
         Debug.Log(report.ToString());
@@ -171,6 +187,14 @@ public static class SampleSceneGameBuilder
             Material material = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/{materials[i]}.mat");
             CreateModel(modelFiles[i], collectible.transform, material, Vector3.one * .85f);
         }
+    }
+
+    private static void ConfigureSampleFan()
+    {
+        FanZone[] fans = Object.FindObjectsByType<FanZone>(FindObjectsSortMode.None);
+        if (fans.Length != 1)
+            throw new System.InvalidOperationException($"Expected one SampleScene fan zone, found {fans.Length}.");
+        fans[0].Configure(Vector3.left, 18f);
     }
 
     private static void CreateForkJumpTrigger(Transform parent)

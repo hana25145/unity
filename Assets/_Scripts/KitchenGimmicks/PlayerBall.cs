@@ -9,6 +9,7 @@ public class PlayerBall : MonoBehaviour
     [SerializeField] private float rollPower = 30f;
     [SerializeField] private float maxGroundSpeed = 12f;
     [SerializeField] private float normalLinearDamping = 0.25f;
+    [SerializeField] private float wallCheckDistance = 0.35f;
 
     [Header("Respawn")]
     [SerializeField] private float fallY = -10f;
@@ -72,10 +73,18 @@ public class PlayerBall : MonoBehaviour
         if (input.sqrMagnitude > 0.001f)
         {
             Vector3 rotationAxis = Vector3.Cross(Vector3.up, input);
-            rb.AddTorque(
-                rotationAxis * rollPower * accelerationMultiplier,
-                ForceMode.Acceleration
-            );
+            if (IsBlockedByWall(input, out _))
+            {
+                // Forward rolling torque turns into wall-climbing friction at a vertical wall.
+                rb.angularVelocity -= Vector3.Project(rb.angularVelocity, rotationAxis.normalized);
+            }
+            else
+            {
+                rb.AddTorque(
+                    rotationAxis * rollPower * accelerationMultiplier,
+                    ForceMode.Acceleration
+                );
+            }
         }
 
         // 겹친 구역에서는 세제(미끄러움)를 우선하고, 그 외에는 가장 끈적한 값을 사용합니다.
@@ -94,6 +103,16 @@ public class PlayerBall : MonoBehaviour
 
         Vector3 vertical = rb.linearVelocity - horizontal;
         rb.linearVelocity = horizontal.normalized * limit + vertical;
+    }
+
+    private bool IsBlockedByWall(Vector3 direction, out RaycastHit hit)
+    {
+        return rb.SweepTest(
+            direction.normalized,
+            out hit,
+            wallCheckDistance,
+            QueryTriggerInteraction.Ignore
+        ) && hit.normal.y < 0.45f;
     }
 
     public void AddSurfaceEffect(
