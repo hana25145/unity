@@ -188,6 +188,7 @@ public static class SampleSceneGameBuilder
             BoxCollider collider = puddle.GetComponent<BoxCollider>();
             collider.isTrigger = true;
             collider.size = sizes[i];
+            puddle.GetComponent<HoneyZone>().Configure(.65f, .7f, 1.25f);
         }
     }
 
