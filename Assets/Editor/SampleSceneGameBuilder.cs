@@ -29,6 +29,7 @@ public static class SampleSceneGameBuilder
         ConfigureSoapTextureMask();
         NormalizeZones<FanZone>();
         NormalizeZones<WaterZone>();
+        ConfigureSampleWater();
         ConfigureSampleFan();
 
         GameObject additions = new("GAMEPLAY_ADDITIONS");
@@ -96,6 +97,12 @@ public static class SampleSceneGameBuilder
         float windAcceleration = fanSettings.FindProperty("windAcceleration").floatValue;
         if (Vector3.Dot(windDirection.normalized, Vector3.left) < .99f || windAcceleration > 20f)
             throw new System.InvalidOperationException("SampleScene fan must use a moderate leftward crosswind.");
+        WaterZone water = GameObject.Find("water_zone")?.GetComponent<WaterZone>();
+        float waterDelay = water != null
+            ? new SerializedObject(water).FindProperty("submergeDelay").floatValue
+            : 0f;
+        if (waterDelay < 1f)
+            throw new System.InvalidOperationException("SampleScene water needs a recoverable submerge delay.");
         Debug.Log("SampleScene gameplay validation passed.");
     }
 
@@ -204,6 +211,14 @@ public static class SampleSceneGameBuilder
         if (fans.Length != 1)
             throw new System.InvalidOperationException($"Expected one SampleScene fan zone, found {fans.Length}.");
         fans[0].Configure(Vector3.left, 18f);
+    }
+
+    private static void ConfigureSampleWater()
+    {
+        WaterZone[] zones = Object.FindObjectsByType<WaterZone>(FindObjectsSortMode.None);
+        if (zones.Length != 1)
+            throw new System.InvalidOperationException($"Expected one SampleScene water zone, found {zones.Length}.");
+        zones[0].Configure(1.25f);
     }
 
     private static void ConfigureSoapTextureMask()
@@ -379,6 +394,7 @@ public static class SampleSceneGameBuilder
         BoxCollider collider = hazard.GetComponent<BoxCollider>();
         collider.isTrigger = true;
         collider.size = new Vector3(130f, 2f, 170f);
+        hazard.GetComponent<WaterZone>().Configure(.05f);
     }
 
     private static void CreateCheckpoint(string name, Vector3 position, Vector3 size, Transform parent)
