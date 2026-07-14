@@ -7,6 +7,11 @@ public class SoapZone : MonoBehaviour
     [Range(0.1f, 1f)] [SerializeField] private float maxSpeedMultiplier = 1f;
     [SerializeField] private float slipperyDamping = 0f;
 
+    private void Awake()
+    {
+        GetComponent<Collider>().isTrigger = true;
+    }
+
     private void Reset()
     {
         GetComponent<Collider>().isTrigger = true;
