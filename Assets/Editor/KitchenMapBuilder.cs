@@ -11,6 +11,7 @@ public static class KitchenMapBuilder
 {
     private const string ScenePath = "Assets/Scenes/KitchenCourse.unity";
     private const string MaterialFolder = "Assets/_Materials/KitchenCourse";
+    private const string ModelFolder = "Assets/3d assets(made)";
 
     [MenuItem("Tools/Kitchen Gimmicks/Build Kitchen Course")]
     public static void BuildCourse()
@@ -33,18 +34,28 @@ public static class KitchenMapBuilder
         Material green = Material("GoalGreen", new Color(0.14f, 0.72f, 0.26f), 0.25f);
         Material playerMaterial = Material("Player", new Color(1f, 0.88f, 0.12f), 0.55f);
         Material ingredient = Material("Ingredient", new Color(1f, 0.2f, 0.35f), 0.7f);
+        Material basket = Material("BasketModel", new Color(0.20f, 0.52f, 0.30f), 0.25f);
+        Material grandma = Material("GrandmaModel", new Color(0.78f, 0.48f, 0.76f), 0.35f);
+        Material banana = Material("BananaModel", new Color(1f, 0.78f, 0.08f), 0.28f);
+        Material egg = Material("EggModel", new Color(1f, 0.93f, 0.72f), 0.38f);
+        Material onion = Material("GreenOnionModel", new Color(0.20f, 0.72f, 0.25f), 0.25f);
+        Material peach = Material("PeachModel", new Color(1f, 0.42f, 0.32f), 0.32f);
+        Material plum = Material("PlumModel", new Color(0.43f, 0.12f, 0.55f), 0.42f);
+        Material tomato = Material("TomatoModel", new Color(0.90f, 0.08f, 0.06f), 0.36f);
 
         GameObject environment = new("ENVIRONMENT");
         GameObject gameplay = new("GAMEPLAY");
         GameObject decoration = new("DECORATION");
 
         BuildCounter(environment.transform, counter, counterEdge);
-        BuildCart(decoration.transform, cartRed, metal);
+        BuildCart(decoration.transform, cartRed, metal, basket);
+        Model("grandma.obj", "Grandma", new Vector3(-3f, 0.15f, 6.45f),
+            Vector3.one * 1.65f, new Vector3(0f, 180f, 0f), decoration.transform, grandma);
         BuildHoneySection(gameplay.transform, honey);
         BuildSinkSection(gameplay.transform, decoration.transform, metal, porcelain, soap, darkMetal);
         BuildFanSection(gameplay.transform, decoration.transform, fan, metal);
         BuildGoal(gameplay.transform, green, darkMetal, porcelain);
-        BuildCollectibles(gameplay.transform, ingredient);
+        BuildCollectibles(gameplay.transform, ingredient, banana, egg, onion, peach, plum, tomato);
 
         GameObject deathPlane = new("FallHazard", typeof(BoxCollider), typeof(WaterZone));
         deathPlane.transform.SetParent(gameplay.transform);
@@ -153,7 +164,7 @@ public static class KitchenMapBuilder
             new Vector3(62f, 5f, 0.45f), edge, parent);
     }
 
-    private static void BuildCart(Transform parent, Material red, Material metal)
+    private static void BuildCart(Transform parent, Material red, Material metal, Material basket)
     {
         GameObject cart = new("ShoppingCart_START");
         cart.transform.SetParent(parent);
@@ -167,6 +178,9 @@ public static class KitchenMapBuilder
         for (int j = -1; j <= 1; j += 2)
             Primitive("Wheel", PrimitiveType.Cylinder, new Vector3(i * 1.9f, -0.45f, j * 1.8f),
                 new Vector3(0.55f, 0.22f, 0.55f), metal, cart.transform, new Vector3(90f, 0f, 0f));
+
+        Model("basket (1).obj", "BasketModel", new Vector3(-0.1f, 0.15f, 0f),
+            new Vector3(2.4f, 1.1f, 2.4f), new Vector3(0f, 0f, -90f), cart.transform, basket);
     }
 
     private static void BuildHoneySection(Transform parent, Material honey)
@@ -208,13 +222,12 @@ public static class KitchenMapBuilder
         soapZone.GetComponent<Collider>().isTrigger = true;
         soapZone.AddComponent<SoapZone>();
 
-        // Fork-shaped jump pad at the lip of the sink.
+        // The collaborator's fork is the visible ramp; the trigger remains simple and reliable.
         GameObject forkPad = new("ForkJumpPad");
         forkPad.transform.SetParent(gameplay);
         forkPad.transform.position = new Vector3(-3.8f, 0.45f, 0f);
-        Primitive("Handle", PrimitiveType.Cube, Vector3.zero, new Vector3(5f, 0.25f, 1.1f), metal, forkPad.transform);
-        for (int i = -1; i <= 1; i++)
-            Primitive("Tine", PrimitiveType.Cube, new Vector3(2.7f, 0f, i * 0.52f), new Vector3(1.2f, 0.22f, 0.2f), metal, forkPad.transform);
+        Model("fork.obj", "ForkModel", Vector3.zero, new Vector3(1.7f, 1.7f, 1.7f),
+            new Vector3(0f, 90f, 0f), forkPad.transform, metal);
         BoxCollider trigger = forkPad.AddComponent<BoxCollider>();
         trigger.isTrigger = true;
         trigger.size = new Vector3(6.5f, 1.2f, 2.2f);
@@ -226,8 +239,10 @@ public static class KitchenMapBuilder
             new Vector3(2.5f, 0.75f, 2.5f), porcelain, decoration);
         Primitive("Cup", PrimitiveType.Cylinder, new Vector3(1f, 1f, 2.7f),
             new Vector3(1.5f, 1.5f, 1.5f), darkMetal, decoration);
-        Primitive("Sponge", PrimitiveType.Cube, new Vector3(7f, 0.75f, -3f),
-            new Vector3(2.5f, 1f, 1.7f), soap, decoration, new Vector3(0f, 25f, 0f));
+        Model("soap_bar.obj", "SoapBar", new Vector3(7f, 0.55f, -3f), Vector3.one * 1.15f,
+            new Vector3(0f, 25f, 0f), decoration, soap);
+        Model("faucet.obj", "Faucet", new Vector3(5f, 0.25f, 4.35f), Vector3.one * 1.5f,
+            new Vector3(0f, 180f, 0f), decoration, metal);
     }
 
     private static void BuildFanSection(Transform gameplay, Transform decoration, Material fan, Material metal)
@@ -237,14 +252,8 @@ public static class KitchenMapBuilder
         fanRoot.transform.position = new Vector3(19f, 3.2f, 5.7f);
         fanRoot.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
 
-        Primitive("Stand", PrimitiveType.Cylinder, new Vector3(0f, -2.2f, 0f), new Vector3(2.3f, 0.35f, 2.3f), fan, fanRoot.transform);
-        Primitive("Neck", PrimitiveType.Cylinder, new Vector3(0f, -1.2f, 0f), new Vector3(0.35f, 1.7f, 0.35f), metal, fanRoot.transform);
-        GameObject rotor = new("Rotor", typeof(KitchenSpinner));
-        rotor.transform.SetParent(fanRoot.transform, false);
-        Primitive("Hub", PrimitiveType.Sphere, Vector3.zero, Vector3.one * 1.25f, fan, rotor.transform);
-        for (int i = 0; i < 4; i++)
-            Primitive("Blade", PrimitiveType.Cube, Vector3.zero, new Vector3(0.45f, 3.9f, 1f),
-                fan, rotor.transform, new Vector3(i * 90f, 0f, 0f));
+        Model("fan.obj", "FanModel", new Vector3(0f, -3f, 0f), Vector3.one * 2.35f,
+            Vector3.zero, fanRoot.transform, fan);
 
         GameObject wind = new("FanWindZone");
         wind.transform.SetParent(gameplay);
@@ -277,7 +286,8 @@ public static class KitchenMapBuilder
                 new Vector3(0.35f, 0.8f, 1.25f), i % 2 == 0 ? dark : light, goal.transform);
     }
 
-    private static void BuildCollectibles(Transform parent, Material material)
+    private static void BuildCollectibles(Transform parent, Material fallback, Material banana,
+        Material egg, Material onion, Material peach, Material plum, Material tomato)
     {
         Vector3[] positions =
         {
@@ -291,14 +301,57 @@ public static class KitchenMapBuilder
             new(27f, 1.5f, 2.5f)
         };
 
+        string[] models =
+        {
+            "banana.obj", "tomato (1).obj", "egg.obj", "green_onion.obj",
+            "peach.obj", "plum.obj", "tomato (1).obj", "banana.obj"
+        };
+        Material[] materials = { banana, tomato, egg, onion, peach, plum, tomato, banana };
+        Vector3[] scales =
+        {
+            Vector3.one * .85f, Vector3.one * .8f, Vector3.one * .9f, Vector3.one * .75f,
+            Vector3.one * .8f, Vector3.one * .85f, Vector3.one * .7f, Vector3.one * .72f
+        };
+
         for (int i = 0; i < positions.Length; i++)
         {
-            GameObject item = Primitive($"Ingredient_{i + 1}", PrimitiveType.Capsule,
-                positions[i], new Vector3(.65f, .65f, .65f), material, parent,
-                new Vector3(0f, 0f, 90f));
-            item.GetComponent<Collider>().isTrigger = true;
+            GameObject item = new($"Ingredient_{i + 1}");
+            item.transform.SetParent(parent, false);
+            item.transform.localPosition = positions[i];
+            SphereCollider trigger = item.AddComponent<SphereCollider>();
+            trigger.isTrigger = true;
+            trigger.radius = .8f;
+            if (Model(models[i], "Visual", Vector3.zero, scales[i], Vector3.zero, item.transform, materials[i]) == null)
+                Primitive("FallbackVisual", PrimitiveType.Capsule, Vector3.zero, Vector3.one * .65f,
+                    fallback, item.transform, new Vector3(0f, 0f, 90f)).GetComponent<Collider>().enabled = false;
             item.AddComponent<IngredientCollectible>();
         }
+    }
+
+    private static GameObject Model(string fileName, string name, Vector3 position, Vector3 scale,
+        Vector3 rotation, Transform parent, Material material)
+    {
+        string path = $"{ModelFolder}/{fileName}";
+        GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        if (asset == null)
+        {
+            Debug.LogWarning($"Kitchen model was not found: {path}");
+            return null;
+        }
+
+        GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(asset, parent);
+        instance.name = name;
+        instance.transform.localPosition = position;
+        instance.transform.localEulerAngles = rotation;
+        instance.transform.localScale = scale;
+        foreach (Renderer renderer in instance.GetComponentsInChildren<Renderer>(true))
+        {
+            Material[] replacements = new Material[renderer.sharedMaterials.Length];
+            for (int i = 0; i < replacements.Length; i++)
+                replacements[i] = material;
+            renderer.sharedMaterials = replacements.Length > 0 ? replacements : new[] { material };
+        }
+        return instance;
     }
 
     private static void CreateCheckpoint(string name, Vector3 position, Vector3 size, Transform parent)

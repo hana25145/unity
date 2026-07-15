@@ -10,6 +10,13 @@ public class ForkJumpPad : MonoBehaviour
 
     private readonly Dictionary<PlayerBall, float> lastLaunchTimes = new();
 
+    public void Configure(float upSpeed, float forwardLaunchSpeed, float delay = 0.35f)
+    {
+        upwardSpeed = Mathf.Max(0f, upSpeed);
+        forwardSpeed = Mathf.Max(0f, forwardLaunchSpeed);
+        reuseDelay = Mathf.Max(0f, delay);
+    }
+
     private void Awake()
     {
         GetComponent<Collider>().isTrigger = true;
