@@ -3,8 +3,8 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class FanZone : MonoBehaviour
 {
-    [Tooltip("파란색 로컬 Z축 방향으로 바람이 붑니다.")]
-    [SerializeField] private float windAcceleration = 16f;
+    [Tooltip("빨간색 로컬 X축 방향으로 바람이 붑니다. (음수로 하면 반대 방향)")]
+    [SerializeField] private float windAcceleration = 70f;
 
     private void Awake()
     {
@@ -20,12 +20,12 @@ public class FanZone : MonoBehaviour
     {
         PlayerBall player = other.GetComponentInParent<PlayerBall>();
         if (player != null)
-            player.Body.AddForce(transform.forward * windAcceleration, ForceMode.Acceleration);
+            player.Body.AddForce(transform.right * windAcceleration, ForceMode.Acceleration);  // X축(빨강)으로 바람
     }
 
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawRay(transform.position, transform.forward * 3f);
+        Gizmos.color = Color.red;
+        Gizmos.DrawRay(transform.position, transform.right * 3f);  // 빨간 화살표 = 바람 방향
     }
 }
