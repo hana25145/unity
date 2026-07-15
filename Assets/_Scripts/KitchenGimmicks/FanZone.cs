@@ -31,7 +31,10 @@ public class FanZone : MonoBehaviour
     {
         PlayerBall player = other.GetComponentInParent<PlayerBall>();
         if (player != null)
-            player.Body.AddForce(WindDirection * windAcceleration, ForceMode.Acceleration);
+            player.Body.AddForce(
+                WindDirection * (windAcceleration * player.WindForceMultiplier),
+                ForceMode.Acceleration
+            );
     }
 
     private void OnDrawGizmosSelected()

@@ -20,8 +20,10 @@ public class PlayerBall : MonoBehaviour
     private Vector3 checkpointPosition;
     private Quaternion checkpointRotation;
     private bool controlEnabled = true;
+    private float windResistance;
 
     public Rigidbody Body => rb;
+    public float WindForceMultiplier => 1f - windResistance;
     public event Action Respawned;
 
     private struct SurfaceEffect
@@ -152,6 +154,11 @@ public class PlayerBall : MonoBehaviour
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
         }
+    }
+
+    public void ActivateWindShield(float reduction)
+    {
+        windResistance = Mathf.Max(windResistance, Mathf.Clamp(reduction, 0f, .95f));
     }
 
     public void Respawn()
