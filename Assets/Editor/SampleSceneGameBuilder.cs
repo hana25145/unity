@@ -44,6 +44,7 @@ public static class SampleSceneGameBuilder
         CreateCheckpoint("FanCheckpoint", new Vector3(11f, 0f, 82f), new Vector3(28f, 4f, 2f), additions.transform);
         CreateFallHazard(additions.transform);
         CreateCollectibles(additions.transform);
+        CreateWindShieldPickup(additions.transform);
         CreateGoal(additions.transform);
 
         MakeSampleSceneFirstInBuildSettings();
@@ -59,6 +60,7 @@ public static class SampleSceneGameBuilder
         RequireSingle<PlayerBall>("player");
         RequireSingle<KitchenGameManager>("game manager");
         RequireSingle<KitchenGoal>("goal");
+        RequireSingle<WindShieldPickup>("wind shield pickup");
 
         IngredientCollectible[] ingredients = Object.FindObjectsByType<IngredientCollectible>(FindObjectsSortMode.None);
         if (ingredients.Length != 8)
@@ -71,6 +73,7 @@ public static class SampleSceneGameBuilder
         ValidateTriggers<HoneyZone>();
         ValidateTriggers<SoapZone>();
         ValidateTriggers<FanZone>();
+        ValidateTriggers<WindShieldPickup>();
         ValidateTriggers<ForkJumpPad>();
         HoneyZone[] honeyZones = Object.FindObjectsByType<HoneyZone>(FindObjectsSortMode.None);
         if (honeyZones.Length != 1)
@@ -95,7 +98,7 @@ public static class SampleSceneGameBuilder
         SerializedObject fanSettings = new(fan);
         Vector3 windDirection = fanSettings.FindProperty("worldWindDirection").vector3Value;
         float windAcceleration = fanSettings.FindProperty("windAcceleration").floatValue;
-        if (Vector3.Dot(windDirection.normalized, Vector3.left) < .99f || windAcceleration > 20f)
+        if (Vector3.Dot(windDirection.normalized, Vector3.left) < .99f || windAcceleration > 12f)
             throw new System.InvalidOperationException("SampleScene fan must use a moderate leftward crosswind.");
         WaterZone water = GameObject.Find("water_zone")?.GetComponent<WaterZone>();
         float waterDelay = water != null
@@ -210,7 +213,36 @@ public static class SampleSceneGameBuilder
         FanZone[] fans = Object.FindObjectsByType<FanZone>(FindObjectsSortMode.None);
         if (fans.Length != 1)
             throw new System.InvalidOperationException($"Expected one SampleScene fan zone, found {fans.Length}.");
-        fans[0].Configure(Vector3.left, 18f);
+        fans[0].Configure(Vector3.left, 12f);
+    }
+
+    private static void CreateWindShieldPickup(Transform parent)
+    {
+        Material metal = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/Metal.mat");
+        Material porcelain = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/Porcelain.mat");
+
+        GameObject pickup = new("WindShieldPickup", typeof(SphereCollider), typeof(WindShieldPickup));
+        pickup.transform.SetParent(parent, false);
+        pickup.transform.position = new Vector3(11f, .9f, 76f);
+        SphereCollider trigger = pickup.GetComponent<SphereCollider>();
+        trigger.isTrigger = true;
+        trigger.radius = 1.35f;
+
+        GameObject lid = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        lid.name = "MetalLid";
+        lid.transform.SetParent(pickup.transform, false);
+        lid.transform.localScale = new Vector3(1.7f, .14f, 1.7f);
+        lid.GetComponent<Renderer>().sharedMaterial = metal;
+        Object.DestroyImmediate(lid.GetComponent<Collider>());
+
+        GameObject handle = Primitive(
+            "LidHandle",
+            new Vector3(0f, .28f, 0f),
+            new Vector3(.65f, .32f, .3f),
+            porcelain,
+            pickup.transform
+        );
+        Object.DestroyImmediate(handle.GetComponent<Collider>());
     }
 
     private static void ConfigureSampleWater()
@@ -407,7 +439,7 @@ public static class SampleSceneGameBuilder
         collider.size = size;
     }
 
-    private static void Primitive(string name, Vector3 position, Vector3 scale, Material material, Transform parent)
+    private static GameObject Primitive(string name, Vector3 position, Vector3 scale, Material material, Transform parent)
     {
         GameObject primitive = GameObject.CreatePrimitive(PrimitiveType.Cube);
         primitive.name = name;
@@ -415,6 +447,7 @@ public static class SampleSceneGameBuilder
         primitive.transform.localPosition = position;
         primitive.transform.localScale = scale;
         primitive.GetComponent<Renderer>().sharedMaterial = material;
+        return primitive;
     }
 
     private static void MakeSampleSceneFirstInBuildSettings()
